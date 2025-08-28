@@ -1,0 +1,23 @@
+{
+  "title": "🍑 TERMINAL GYM 🍑",
+  "subtitle": "Buttock Lifting Exercise Guide",
+  "welcome_title": "🏋️  WELCOME TO TERMINAL GYM! 🏋️",
+  "welcome_subtitle": "Get Ready to Lift! 🍑",
+  "starting_countdown": "⏰ Starting in 3 seconds... Get into position!",
+  "prepare_message": "🧘 Stand up, engage your core, and prepare your glutes!",
+  "starting_in": "🚀 Starting in %d... ",
+  "lets_begin": "🎬 Let's begin!",
+  "squeeze_instruction": "🏋️  SQUEEZE YOUR GLUTES! Contract those muscles! 🏋️",
+  "lift_instruction": "🚀  LIFT YOUR BUTTOCKS! Push up and engage! 🚀",
+  "watch_follow": "👀 WATCH AND FOLLOW 👀",
+  "rep_counter": "Rep: %d",
+  "tips_header": "💡 Tips:",
+  "tip_follow_rhythm": "   • Follow the animation rhythm",
+  "tip_squeeze": "   • Squeeze when the butt contracts", 
+  "tip_lift": "   • Lift when the butt expands",
+  "tip_core": "   • Keep your core engaged",
+  "tip_exit": "   • Press Ctrl+C to exit",
+  "workout_complete": "🎉 Great workout! Your glutes thank you! 🎉",
+  "keep_work": "💪 Keep up the good work! 💪",
+  "language_help": "Use --lang=en for English or --lang=zh for Chinese"
+}

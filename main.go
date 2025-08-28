@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"os/signal"
@@ -38,20 +39,22 @@ var buttStates = []string{
 }
 
 type TerminalGym struct {
-	spring   harmonica.Spring
-	position float64
-	velocity float64
-	target   float64
-	cycle    int
+	spring     harmonica.Spring
+	position   float64
+	velocity   float64
+	target     float64
+	cycle      int
+	localizer  *Localizer
 }
 
-func NewTerminalGym() *TerminalGym {
+func NewTerminalGym(localizer *Localizer) *TerminalGym {
 	return &TerminalGym{
-		spring:   harmonica.NewSpring(harmonica.FPS(fps), angularFreq, dampingRatio),
-		position: 0.0,
-		velocity: 0.0,
-		target:   0.0,
-		cycle:    0,
+		spring:    harmonica.NewSpring(harmonica.FPS(fps), angularFreq, dampingRatio),
+		position:  0.0,
+		velocity:  0.0,
+		target:    0.0,
+		cycle:     0,
+		localizer: localizer,
 	}
 }
 
@@ -83,9 +86,9 @@ func (tg *TerminalGym) getInstructions() string {
 	phase := tg.cycle % 4
 	switch phase {
 	case 0, 1:
-		return "🏋️  SQUEEZE YOUR GLUTES! Contract those muscles! 🏋️"
+		return tg.localizer.T("squeeze_instruction")
 	case 2, 3:
-		return "🚀  LIFT YOUR BUTTOCKS! Push up and engage! 🚀"
+		return tg.localizer.T("lift_instruction")
 	}
 	return ""
 }
@@ -95,8 +98,8 @@ func (tg *TerminalGym) render() {
 	
 	// Title
 	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("                    🍑 TERMINAL GYM 🍑")
-	fmt.Println("              Buttock Lifting Exercise Guide")
+	fmt.Println("                    " + tg.localizer.T("title"))
+	fmt.Println("              " + tg.localizer.T("subtitle"))
 	fmt.Println(strings.Repeat("=", 60) + "\n")
 	
 	// Instructions
@@ -108,23 +111,23 @@ func (tg *TerminalGym) render() {
 	fmt.Printf("%s%s\n\n", strings.Repeat(" ", padding), instruction)
 	
 	// Animation area
-	fmt.Println("\n" + strings.Repeat(" ", 25) + "👀 WATCH AND FOLLOW 👀")
+	fmt.Println("\n" + strings.Repeat(" ", 25) + tg.localizer.T("watch_follow"))
 	fmt.Println()
 	
 	// Render the animated butt
 	tg.renderButt()
 	
 	// Exercise counter and tips
-	fmt.Printf("\n\n%sRep: %d\n", strings.Repeat(" ", 25), tg.cycle/2+1)
+	fmt.Printf("\n\n%s" + tg.localizer.Tf("rep_counter", tg.cycle/2+1) + "\n", strings.Repeat(" ", 25))
 	
 	// Tips
 	fmt.Println("\n" + strings.Repeat("-", 60))
-	fmt.Println("💡 Tips:")
-	fmt.Println("   • Follow the animation rhythm")
-	fmt.Println("   • Squeeze when the butt contracts")
-	fmt.Println("   • Lift when the butt expands")
-	fmt.Println("   • Keep your core engaged")
-	fmt.Println("   • Press Ctrl+C to exit")
+	fmt.Println(tg.localizer.T("tips_header"))
+	fmt.Println(tg.localizer.T("tip_follow_rhythm"))
+	fmt.Println(tg.localizer.T("tip_squeeze"))
+	fmt.Println(tg.localizer.T("tip_lift"))
+	fmt.Println(tg.localizer.T("tip_core"))
+	fmt.Println(tg.localizer.T("tip_exit"))
 	fmt.Println(strings.Repeat("-", 60))
 }
 
@@ -171,8 +174,8 @@ func (tg *TerminalGym) run() {
 		select {
 		case <-c:
 			tg.clearScreen()
-			fmt.Println("\n🎉 Great workout! Your glutes thank you! 🎉")
-			fmt.Println("💪 Keep up the good work! 💪\n")
+			fmt.Println("\n" + tg.localizer.T("workout_complete"))
+			fmt.Println(tg.localizer.T("keep_work") + "\n")
 			return
 		case <-ticker.C:
 			tg.update()
@@ -182,27 +185,45 @@ func (tg *TerminalGym) run() {
 }
 
 func main() {
+	// Parse command line arguments
+	lang := flag.String("lang", "en", "Language (en/zh)")
+	help := flag.Bool("help", false, "Show help")
+	flag.Parse()
+	
+	// Initialize localizer
+	localizer, err := NewLocalizer(*lang)
+	if err != nil {
+		fmt.Printf("Error initializing localizer: %v\n", err)
+		fmt.Println("Falling back to English...")
+		localizer, _ = NewLocalizer("en")
+	}
+	
+	if *help {
+		fmt.Println(localizer.T("language_help"))
+		return
+	}
+	
 	// Hide cursor for better animation experience
 	fmt.Print("\033[?25l")
 	defer fmt.Print("\033[?25h") // Show cursor on exit
 	
-	gym := NewTerminalGym()
+	gym := NewTerminalGym(localizer)
 	
 	// Welcome message
 	fmt.Print("\033[H\033[2J")
 	fmt.Println("\n" + strings.Repeat("=", 60))
-	fmt.Println("                 🏋️  WELCOME TO TERMINAL GYM! 🏋️")
-	fmt.Println("                    Get Ready to Lift! 🍑")
+	fmt.Println("                 " + localizer.T("welcome_title"))
+	fmt.Println("                    " + localizer.T("welcome_subtitle"))
 	fmt.Println(strings.Repeat("=", 60))
-	fmt.Println("\n⏰ Starting in 3 seconds... Get into position!")
-	fmt.Println("🧘 Stand up, engage your core, and prepare your glutes!")
+	fmt.Println("\n" + localizer.T("starting_countdown"))
+	fmt.Println(localizer.T("prepare_message"))
 	
 	// Countdown
 	for i := 3; i > 0; i-- {
 		time.Sleep(time.Second)
-		fmt.Printf("\r🚀 Starting in %d... ", i)
+		fmt.Printf("\r" + localizer.Tf("starting_in", i))
 	}
-	fmt.Println("\n\n🎬 Let's begin!")
+	fmt.Println("\n\n" + localizer.T("lets_begin"))
 	time.Sleep(time.Second)
 	
 	gym.run()
