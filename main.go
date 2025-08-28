@@ -20,41 +20,145 @@ const (
 	animationRange = 8.0
 )
 
-// ASCII art for different butt states
-var buttStates = []string{
-	// Contracted state (smaller)
-	`    ( . Y . )    `,
+// Enhanced ASCII art for different butt states with more detail
+// Each state contains multiple lines representing a single frame
+var buttStates = [][]string{
+	// State 0: Fully contracted state - tight muscle definition
+	{
+		`    ╭─────╮    `,
+		`   ╱  ╭─╮  ╲   `,
+		`  ╱  ╱   ╲  ╲  `,
+		` ╱  ╱  ●  ╲  ╲ `,
+		`╱  ╱       ╲  ╲`,
+		`╲  ╲       ╱  ╱`,
+		` ╲  ╲     ╱  ╱ `,
+		`  ╲  ╲___╱  ╱  `,
+		`   ╲_______╱   `,
+	},
 	
-	// Slightly expanded
-	`   (  . Y .  )   `,
+	// State 1: Slight expansion - muscles beginning to engage
+	{
+		`     ╭─────╮     `,
+		`   ╭─╱  ╭─╮  ╲─╮   `,
+		`  ╱  ╱  ╱   ╲  ╲  ╲  `,
+		` ╱  ╱  ╱  ●  ╲  ╲  ╲ `,
+		`╱  ╱  ╱       ╲  ╲  ╲`,
+		`╲  ╲  ╲       ╱  ╱  ╱`,
+		` ╲  ╲  ╲     ╱  ╱  ╱ `,
+		`  ╲  ╲  ╲___╱  ╱  ╱  `,
+		`   ╲─╲_______╱─╱   `,
+	},
 	
-	// Medium expansion
-	`  (   . Y .   )  `,
+	// State 2: Medium expansion - balanced muscle tone
+	{
+		`      ╭──────╮      `,
+		`   ╭──╱   ╭─╮   ╲──╮   `,
+		`  ╱   ╱   ╱   ╲   ╲   ╲  `,
+		` ╱   ╱   ╱  ●  ╲   ╲   ╲ `,
+		`╱   ╱   ╱       ╲   ╲   ╲`,
+		`╲   ╲   ╲       ╱   ╱   ╱`,
+		` ╲   ╲   ╲     ╱   ╱   ╱ `,
+		`  ╲   ╲   ╲___╱   ╱   ╱  `,
+		`   ╲──╲_________╱──╱   `,
+	},
 	
-	// Fully expanded
-	` (    . Y .    ) `,
+	// State 3: Full expansion - muscles fully engaged
+	{
+		`       ╭───────╮       `,
+		`   ╭───╱    ╭─╮    ╲───╮   `,
+		`  ╱    ╱    ╱   ╲    ╲    ╲  `,
+		` ╱    ╱    ╱  ●  ╲    ╲    ╲ `,
+		`╱    ╱    ╱       ╲    ╲    ╲`,
+		`╲    ╲    ╲       ╱    ╱    ╱`,
+		` ╲    ╲    ╲     ╱    ╱    ╱ `,
+		`  ╲    ╲    ╲___╱    ╱    ╱  `,
+		`   ╲───╲___________╱───╱   `,
+	},
 	
-	// Maximum expansion
-	`(     . Y .     )`,
+	// State 4: Maximum expansion - peak muscle activation
+	{
+		`        ╭────────╮        `,
+		`   ╭────╱     ╭─╮     ╲────╮   `,
+		`  ╱     ╱     ╱   ╲     ╲     ╲  `,
+		` ╱     ╱     ╱  ●  ╲     ╲     ╲ `,
+		`╱     ╱     ╱       ╲     ╲     ╲`,
+		`╲     ╲     ╲       ╱     ╱     ╱`,
+		` ╲     ╲     ╲     ╱     ╱     ╱ `,
+		`  ╲     ╲     ╲___╱     ╱     ╱  `,
+		`   ╲────╲_____________╱────╱   `,
+	},
 }
 
 type TerminalGym struct {
-	spring     harmonica.Spring
-	position   float64
-	velocity   float64
-	target     float64
-	cycle      int
-	localizer  *Localizer
+	// Main animation spring
+	mainSpring     harmonica.Spring
+	mainPosition   float64
+	mainVelocity   float64
+	mainTarget     float64
+	
+	// Secondary springs for subtle effects
+	leftSpring     harmonica.Spring
+	leftPosition   float64
+	leftVelocity   float64
+	leftTarget     float64
+	
+	rightSpring    harmonica.Spring
+	rightPosition  float64
+	rightVelocity  float64
+	rightTarget    float64
+	
+	// Breathing/micro-movement spring
+	breathSpring   harmonica.Spring
+	breathPosition float64
+	breathVelocity float64
+	breathTarget   float64
+	
+	// Muscle tension spring for definition
+	tensionSpring  harmonica.Spring
+	tensionPosition float64
+	tensionVelocity float64
+	tensionTarget   float64
+	
+	cycle          int
+	localizer      *Localizer
+	frameCount     int64  // For time-based effects
 }
 
 func NewTerminalGym(localizer *Localizer) *TerminalGym {
 	return &TerminalGym{
-		spring:    harmonica.NewSpring(harmonica.FPS(fps), angularFreq, dampingRatio),
-		position:  0.0,
-		velocity:  0.0,
-		target:    0.0,
-		cycle:     0,
-		localizer: localizer,
+		// Main spring for primary animation
+		mainSpring:    harmonica.NewSpring(harmonica.FPS(fps), angularFreq, dampingRatio),
+		mainPosition:  0.0,
+		mainVelocity:  0.0,
+		mainTarget:    0.0,
+		
+		// Left cheek with slightly different characteristics
+		leftSpring:    harmonica.NewSpring(harmonica.FPS(fps), angularFreq*1.1, dampingRatio*0.9),
+		leftPosition:  0.0,
+		leftVelocity:  0.0,
+		leftTarget:    0.0,
+		
+		// Right cheek with slightly different characteristics  
+		rightSpring:   harmonica.NewSpring(harmonica.FPS(fps), angularFreq*0.9, dampingRatio*1.1),
+		rightPosition: 0.0,
+		rightVelocity: 0.0,
+		rightTarget:   0.0,
+		
+		// Breathing effect - slower, more subtle
+		breathSpring:  harmonica.NewSpring(harmonica.FPS(fps), 1.5, 0.8),
+		breathPosition: 0.0,
+		breathVelocity: 0.0,
+		breathTarget:   0.0,
+		
+		// Muscle tension - faster response, higher damping
+		tensionSpring: harmonica.NewSpring(harmonica.FPS(fps), angularFreq*2.0, dampingRatio*2.0),
+		tensionPosition: 0.0,
+		tensionVelocity: 0.0,
+		tensionTarget:   0.0,
+		
+		cycle:         0,
+		localizer:     localizer,
+		frameCount:    0,
 	}
 }
 
@@ -63,8 +167,8 @@ func (tg *TerminalGym) clearScreen() {
 }
 
 func (tg *TerminalGym) renderButt() {
-	// Map position to butt state
-	normalizedPos := (tg.position + animationRange) / (2 * animationRange)
+	// Calculate the base animation state using main spring
+	normalizedPos := (tg.mainPosition + animationRange) / (2 * animationRange)
 	if normalizedPos < 0 {
 		normalizedPos = 0
 	}
@@ -72,14 +176,81 @@ func (tg *TerminalGym) renderButt() {
 		normalizedPos = 1
 	}
 	
-	stateIndex := int(normalizedPos * float64(len(buttStates)-1))
-	if stateIndex >= len(buttStates) {
-		stateIndex = len(buttStates) - 1
+	// Base state selection
+	baseStateIndex := int(normalizedPos * float64(len(buttStates)-1))
+	if baseStateIndex >= len(buttStates) {
+		baseStateIndex = len(buttStates) - 1
 	}
 	
-	// Center the butt on screen
-	padding := strings.Repeat(" ", 20)
-	fmt.Printf("%s%s\n", padding, buttStates[stateIndex])
+	// Calculate subtle asymmetry from left/right springs
+	leftOffset := int(tg.leftPosition * 0.3)   // Subtle left adjustment
+	rightOffset := int(tg.rightPosition * 0.3) // Subtle right adjustment
+	
+	// Calculate breathing micro-movement
+	breathOffset := int(tg.breathPosition * 0.5)
+	
+	// Calculate muscle tension effect
+	tensionIntensity := (tg.tensionPosition + animationRange) / (2 * animationRange)
+	if tensionIntensity < 0 {
+		tensionIntensity = 0
+	}
+	if tensionIntensity > 1 {
+		tensionIntensity = 1
+	}
+	
+	// Dynamic padding based on breathing and asymmetry
+	basePadding := 15
+	dynamicPadding := basePadding + breathOffset + leftOffset - rightOffset
+	if dynamicPadding < 5 {
+		dynamicPadding = 5
+	}
+	if dynamicPadding > 25 {
+		dynamicPadding = 25
+	}
+	
+	// Render each line of the butt with subtle modifications
+	buttLines := buttStates[baseStateIndex]
+	for _, line := range buttLines {
+		
+		// Apply tension-based character substitution for more defined look
+		if tensionIntensity > 0.7 {
+			line = strings.ReplaceAll(line, "╱", "╱")  // Keep sharp angles
+			line = strings.ReplaceAll(line, "╲", "╲")  // Keep sharp angles
+		} else if tensionIntensity < 0.3 {
+			// Softer look for relaxed state
+			line = strings.ReplaceAll(line, "╭", "╭")
+			line = strings.ReplaceAll(line, "╮", "╮")
+		}
+		
+		// Apply asymmetric padding for left/right variation
+		leftPad := dynamicPadding + (leftOffset - rightOffset)/2
+		if leftPad < 0 {
+			leftPad = 0
+		}
+		
+		padding := strings.Repeat(" ", leftPad)
+		
+		// Add subtle rotation effect based on spring differences
+		rotationEffect := ""
+		if abs(tg.leftPosition-tg.rightPosition) > 1.0 {
+			if tg.leftPosition > tg.rightPosition {
+				rotationEffect = " ↗" // Slight tilt indicator
+			} else {
+				rotationEffect = " ↖" // Slight tilt indicator  
+			}
+		}
+		
+		fmt.Printf("%s%s%s\n", padding, line, rotationEffect)
+	}
+	
+	// Add subtle muscle activation indicators
+	if tensionIntensity > 0.8 {
+		indicatorPadding := strings.Repeat(" ", dynamicPadding+8)
+		fmt.Printf("%s💪 Peak Activation 💪\n", indicatorPadding)
+	} else if tensionIntensity > 0.5 {
+		indicatorPadding := strings.Repeat(" ", dynamicPadding+10)
+		fmt.Printf("%s⚡ Engaged ⚡\n", indicatorPadding)
+	}
 }
 
 func (tg *TerminalGym) getInstructions() string {
@@ -132,23 +303,59 @@ func (tg *TerminalGym) render() {
 }
 
 func (tg *TerminalGym) update() {
-	// Update spring physics
-	tg.position, tg.velocity = tg.spring.Update(tg.position, tg.velocity, tg.target)
+	tg.frameCount++
+	
+	// Update main spring physics
+	tg.mainPosition, tg.mainVelocity = tg.mainSpring.Update(tg.mainPosition, tg.mainVelocity, tg.mainTarget)
+	
+	// Update left cheek spring with slight delay and variation
+	leftTargetVariation := tg.mainTarget + sin(float64(tg.frameCount)*0.02)*0.5
+	tg.leftPosition, tg.leftVelocity = tg.leftSpring.Update(tg.leftPosition, tg.leftVelocity, leftTargetVariation)
+	
+	// Update right cheek spring with different delay and variation
+	rightTargetVariation := tg.mainTarget + sin(float64(tg.frameCount)*0.018)*0.4
+	tg.rightPosition, tg.rightVelocity = tg.rightSpring.Update(tg.rightPosition, tg.rightVelocity, rightTargetVariation)
+	
+	// Update breathing spring with slow oscillation
+	breathingCycle := sin(float64(tg.frameCount) * 0.01) * 2.0
+	tg.breathPosition, tg.breathVelocity = tg.breathSpring.Update(tg.breathPosition, tg.breathVelocity, breathingCycle)
+	
+	// Update tension spring - follows main target but with different characteristics
+	tensionTarget := tg.mainTarget * 1.2 // Slightly more intense
+	tg.tensionPosition, tg.tensionVelocity = tg.tensionSpring.Update(tg.tensionPosition, tg.tensionVelocity, tensionTarget)
 	
 	// Check if we need to change target (cycle between contract and expand)
-	if tg.hasReachedTarget() {
+	if tg.hasReachedMainTarget() {
 		tg.cycle++
 		if tg.cycle%2 == 0 {
-			tg.target = -animationRange // Contract
+			tg.mainTarget = -animationRange // Contract
 		} else {
-			tg.target = animationRange  // Expand
+			tg.mainTarget = animationRange  // Expand
 		}
 	}
 }
 
-func (tg *TerminalGym) hasReachedTarget() bool {
+func (tg *TerminalGym) hasReachedMainTarget() bool {
 	threshold := 0.5
-	return abs(tg.position-tg.target) < threshold && abs(tg.velocity) < threshold
+	return abs(tg.mainPosition-tg.mainTarget) < threshold && abs(tg.mainVelocity) < threshold
+}
+
+// Add sin function for smooth oscillations
+func sin(x float64) float64 {
+	// Simple sine approximation for smooth oscillations
+	// Using Taylor series approximation for efficiency
+	x = x - float64(int(x/(2*3.14159)))*2*3.14159 // Normalize to 0-2π range
+	if x < 0 {
+		x += 2 * 3.14159
+	}
+	
+	// Taylor series: sin(x) ≈ x - x³/6 + x⁵/120 - x⁷/5040
+	x2 := x * x
+	x3 := x2 * x
+	x5 := x3 * x2
+	x7 := x5 * x2
+	
+	return x - x3/6.0 + x5/120.0 - x7/5040.0
 }
 
 func abs(x float64) float64 {
@@ -164,7 +371,7 @@ func (tg *TerminalGym) run() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	
 	// Start with contraction
-	tg.target = -animationRange
+	tg.mainTarget = -animationRange
 	
 	// Animation loop
 	ticker := time.NewTicker(time.Second / fps)
